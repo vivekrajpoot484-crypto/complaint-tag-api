@@ -1,14 +1,48 @@
 import { Router, Request, Response } from "express";
-import twilio from "twilio";
+import twilio, { Twilio } from "twilio";
 import { classifyComplaint } from "../../services/ai/complaintClassifier";
 
 const router = Router();
 
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TWILIO_WHATSAPP_NUMBER = process.env.TWILIO_WHATSAPP_NUMBER;
+/**
+ * Lazy initialization of the Twilio client.
+ * This ensures that the Twilio module logic is NOT executed at import time,
+ * preventing startup crashes if environment variables are missing.
+ */
+let twilioClient: Twilio | null = null;
 
-const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+/**
+ * Safely retrieves the Twilio client.
+ * Validates environment variables only when needed.
+ */
+function getTwilioClient(): Twilio | null {
+  // If already initialized (even as null), return the cached state
+  if (twilioClient) return twilioClient;
+
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+  // Validate presence
+  if (!accountSid || !authToken) {
+    console.warn("[Twilio] Missing TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN. WhatsApp integration will be disabled.");
+    return null;
+  }
+
+  // Validate format (AC... is required for Twilio Account SIDs)
+  if (!accountSid.startsWith("AC")) {
+    console.warn("[Twilio] Invalid TWILIO_ACCOUNT_SID format (must start with 'AC'). WhatsApp integration will be disabled.");
+    return null;
+  }
+
+  try {
+    twilioClient = twilio(accountSid, authToken);
+    console.log("[Twilio] Client initialized successfully.");
+    return twilioClient;
+  } catch (error) {
+    console.error("[Twilio] Failed to initialize client:", error);
+    return null;
+  }
+}
 
 /**
  * Generates a human-like reply based on the AI analysis results.
@@ -42,37 +76,54 @@ function generateReply(analysis: any): string {
 /**
  * POST /webhook/whatsapp
  * Handles incoming WhatsApp messages from Twilio.
+ * This route is safe and will not crash the app even if Twilio is unconfigured.
  */
 router.post("/whatsapp", async (req: Request, res: Response) => {
   try {
-    // Twilio sends data as application/x-www-form-urlencoded
     const { Body, From } = req.body;
 
     if (!Body || !From) {
-      console.error("Missing Body or From in Twilio payload");
-      res.status(200).send("OK"); // Always return 200 to Twilio
-      return;
+      console.error("[WhatsApp Webhook] Missing Body or From in Twilio payload");
+      return res.status(200).send("OK"); // Acknowledge to Twilio to stop retries
     }
 
-    // 1. Classify the complaint
-    const analysis = await classifyComplaint({ message: Body });
+    // 1. Classify with fallback safety
+    let analysis;
+    try {
+      analysis = await classifyComplaint({ message: Body });
+    } catch (aiError) {
+      console.error("[WhatsApp Webhook] AI service failed, using fallback:", aiError);
+      analysis = {
+        category: "other",
+        urgency_score: 50,
+        reply_tone: "neutral",
+        summary: Body,
+        confidence: 0.5
+      };
+    }
 
-    // 2. Generate the auto-reply
+    // 2. Prepare reply
     const replyMessage = generateReply(analysis);
 
-    // 3. Send reply back using Twilio API
-    await client.messages.create({
-      from: `whatsapp:${TWILIO_WHATSAPP_NUMBER}`,
-      to: From,
-      body: replyMessage
-    });
+    // 3. Attempt to send via Twilio
+    const client = getTwilioClient();
+    const whatsappNumber = process.env.TWILIO_WHATSAPP_NUMBER;
 
-    console.log(`WhatsApp reply sent to ${From}`);
+    if (client && whatsappNumber) {
+      await client.messages.create({
+        from: `whatsapp:${whatsappNumber}`,
+        to: From,
+        body: replyMessage
+      });
+      console.log(`[WhatsApp Webhook] Reply sent successfully to ${From}`);
+    } else {
+      console.warn(`[WhatsApp Webhook] Could not send reply to ${From}: Twilio client or WhatsApp number not configured.`);
+    }
     
   } catch (error) {
-    console.error("Error handling WhatsApp webhook:", error);
+    console.error("[WhatsApp Webhook] Unexpected error handling request:", error);
   } finally {
-    // Always return 200 to Twilio to avoid retries
+    // Crucial: Twilio webhooks should almost always return 200 OK
     res.status(200).send("OK");
   }
 });
