@@ -1,0 +1,150 @@
+{
+	"info": {
+		"_postman_id": "c7a8b9d0-1234-4567-890a-bcdef1234567",
+		"name": "Complaint Tag API",
+		"description": "Validation collection for testing the Gemini-powered complaint classifier with realistic WhatsApp-style scenarios.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Tag Complaint",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"message\": \"Hey, I bought those shoes 2 days ago and they already broke?? 😡 I want my money back ASAP. This is ridiculous.\",\n    \"business_context\": \"Retail footwear store\",\n    \"language\": \"en\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/tag-complaint",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"tag-complaint"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "Refund Complaint Example",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"message\": \"Hey, I bought those shoes 2 days ago and they already broke?? 😡 I want my money back ASAP. This is ridiculous.\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/tag-complaint",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "tag-complaint"]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"body": "{\n    \"category\": \"refund\",\n    \"urgency_score\": 90,\n    \"reply_tone\": \"apologetic\",\n    \"summary\": \"Customer wants a refund for shoes that broke shortly after purchase.\",\n    \"confidence\": 0.98\n}"
+				},
+				{
+					"name": "Delivery Delay Example",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"message\": \"where is my order #12345? it was supposed to be here on friday... still nothing. really need this for my daughters bday tomorrow please check!! 🙏\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/tag-complaint",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "tag-complaint"]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"body": "{\n    \"category\": \"delay\",\n    \"urgency_score\": 85,\n    \"reply_tone\": \"urgent\",\n    \"summary\": \"Order #12345 is late; customer needs it for a birthday tomorrow.\",\n    \"confidence\": 0.95\n}"
+				},
+				{
+					"name": "Rude Behavior Example",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"message\": \"Your staff at the downtown store was super rude to me today. Totally ignored me while I was trying to ask a question. Never coming back here again. 👎\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/tag-complaint",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "tag-complaint"]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"body": "{\n    \"category\": \"rude_behavior\",\n    \"urgency_score\": 60,\n    \"reply_tone\": \"apologetic\",\n    \"summary\": \"Customer reports rude staff behavior at the downtown store.\",\n    \"confidence\": 0.92\n}"
+				},
+				{
+					"name": "Product Issue Example",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"message\": \"The laptop I received today keeps crashing. Screen goes black every 5 minutes. Tried restarting but same thing happens. Is this a joke??\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/tag-complaint",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "tag-complaint"]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"body": "{\n    \"category\": \"product_issue\",\n    \"urgency_score\": 75,\n    \"reply_tone\": \"calm\",\n    \"summary\": \"New laptop is crashing repeatedly with screen issues.\",\n    \"confidence\": 0.96\n}"
+				},
+				{
+					"name": "Mixed Complaint Example",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"message\": \"Received my package 4 days late and when I opened it, the blender was shattered! 😭 I tried calling support but they hung up on me. I want a refund and an explanation now!!\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/tag-complaint",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "tag-complaint"]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"body": "{\n    \"category\": \"refund\",\n    \"urgency_score\": 95,\n    \"reply_tone\": \"urgent\",\n    \"summary\": \"Package delayed, item damaged, and poor support experience; customer demands refund.\",\n    \"confidence\": 0.94\n}"
+				}
+			]
+		}
+	]
+}
