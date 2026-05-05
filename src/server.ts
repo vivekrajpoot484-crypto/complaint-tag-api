@@ -9,6 +9,7 @@
 import * as dotenv from "dotenv";
 import path from "path";
 
+
 // 1. Load environment variables immediately
 dotenv.config();
 
@@ -18,6 +19,10 @@ dotenv.config();
 import { app } from "./api/services/ai/utils/app";
 
 const PORT = Number(process.env.PORT) || 3000;
+
+app.listen(PORT, () => {
+  console.log("Server running on port", PORT);
+});
 
 /**
  * Start the server
